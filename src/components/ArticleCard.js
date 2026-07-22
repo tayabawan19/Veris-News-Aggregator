@@ -24,7 +24,7 @@ export default function ArticleCard({ article, apiBaseUrl = '' }) {
   const [translateResult, setTranslateResult] = useState(null);
   const [copied, setCopied] = useState(false);
   
-  // Track image load attempts: 0 = Direct, 1 = Proxied, 2 = Failed
+  // Track image load attempts: 0 = Direct, 1 = Proxied, 2 = Failed (No Image)
   const [imageState, setImageState] = useState(0);
 
   const formatTimeAgo = (dateString) => {
@@ -41,15 +41,13 @@ export default function ArticleCard({ article, apiBaseUrl = '' }) {
     return `${diffInDays}d ago`;
   };
 
-  // Determine current image URL to render
+  // Determine current image URL (ONLY original or proxied original, NO stock photos)
   const getImageSource = () => {
     if (!article.image_url) return null;
     if (imageState === 0) {
-      // Step 1: Attempt direct original URL
       return article.image_url;
     }
     if (imageState === 1) {
-      // Step 2: If direct URL fails, repair using Server Proxy
       return `${apiBaseUrl}/api/image-proxy?url=${encodeURIComponent(article.image_url)}`;
     }
     return null;
@@ -57,10 +55,10 @@ export default function ArticleCard({ article, apiBaseUrl = '' }) {
 
   const handleImageError = () => {
     if (imageState === 0 && article.image_url) {
-      console.log(`[Image Repair] Direct load failed for ${article.image_url}. Retrying with Server Proxy...`);
+      console.log(`[Original Image Load Failed] Retrying original photo through server proxy: ${article.image_url}`);
       setImageState(1);
     } else {
-      console.warn(`[Image Error] Failed to load image even with proxy: ${article.image_url}`);
+      console.log(`[Original Image Unavailable] Displaying clean editorial text layout for: ${article.title}`);
       setImageState(2);
     }
   };
@@ -150,9 +148,9 @@ export default function ArticleCard({ article, apiBaseUrl = '' }) {
       whileHover={{ y: -4 }}
       className="bg-white rounded-3xl border border-[#E5E4DE] overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
     >
-      {/* Thumbnail Image Header */}
-      <div className="relative h-48 w-full bg-[#FAFAF8] overflow-hidden border-b border-[#E5E4DE]/60">
-        {currentImgSrc ? (
+      {/* Photo Header (Rendered ONLY if genuine original news photo exists) */}
+      {currentImgSrc ? (
+        <div className="relative h-48 w-full bg-[#FAFAF8] overflow-hidden border-b border-[#E5E4DE]/60">
           <img
             src={currentImgSrc}
             alt={article.title}
@@ -160,29 +158,33 @@ export default function ArticleCard({ article, apiBaseUrl = '' }) {
             onError={handleImageError}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
-        ) : (
-          <div className="w-full h-full bg-[#F4F4F0] flex flex-col items-center justify-center text-[#6B6B66] p-4 text-center">
-            <Newspaper className="w-8 h-8 mb-2 opacity-40 text-[#2456C9]" />
-            <span className="font-mono-meta text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]">
-              Editorial News Wire
+
+          {/* Source & Time Metadata Badges */}
+          <div className="absolute top-3 left-3 flex items-center gap-2">
+            <span className="px-2.5 py-1 rounded-full bg-[#1A1A1A]/90 backdrop-blur-md text-white text-[11px] font-mono-meta font-bold shadow-md">
+              {article.source_name}
             </span>
           </div>
-        )}
 
-        {/* Source & Time Metadata Badges */}
-        <div className="absolute top-3 left-3 flex items-center gap-2">
-          <span className="px-2.5 py-1 rounded-full bg-[#1A1A1A]/90 backdrop-blur-md text-white text-[11px] font-mono-meta font-bold shadow-md">
+          <div className="absolute top-3 right-3">
+            <span className="px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md text-[#1A1A1A] text-[11px] font-mono-meta border border-[#E5E4DE] shadow-sm flex items-center gap-1">
+              <Clock className="w-3 h-3 text-[#2456C9]" />
+              {formatTimeAgo(article.published_at)}
+            </span>
+          </div>
+        </div>
+      ) : (
+        /* Text-Only Editorial Header Bar when no original image exists */
+        <div className="px-6 pt-5 pb-2 flex items-center justify-between border-b border-[#E5E4DE]/40 bg-[#FAFAF8]">
+          <span className="px-2.5 py-1 rounded-full bg-[#1A1A1A] text-white text-[11px] font-mono-meta font-bold">
             {article.source_name}
           </span>
-        </div>
-
-        <div className="absolute top-3 right-3">
-          <span className="px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md text-[#1A1A1A] text-[11px] font-mono-meta border border-[#E5E4DE] shadow-sm flex items-center gap-1">
+          <span className="text-[11px] font-mono-meta text-[#6B6B66] flex items-center gap-1">
             <Clock className="w-3 h-3 text-[#2456C9]" />
             {formatTimeAgo(article.published_at)}
           </span>
         </div>
-      </div>
+      )}
 
       {/* Body Content */}
       <div className="p-6 flex-1 flex flex-col justify-between">
