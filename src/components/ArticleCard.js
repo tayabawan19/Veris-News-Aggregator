@@ -2,17 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Languages, ExternalLink, Clock, ChevronUp, Copy, Check, RefreshCw } from 'lucide-react';
-
-const CATEGORY_FALLBACK_IMAGES = {
-  business: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=800&auto=format&fit=crop',
-  technology: 'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=800&auto=format&fit=crop',
-  sports: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=800&auto=format&fit=crop',
-  health: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?q=80&w=800&auto=format&fit=crop',
-  entertainment: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=800&auto=format&fit=crop',
-  top: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=800&auto=format&fit=crop',
-  default: 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?q=80&w=800&auto=format&fit=crop'
-};
+import { Sparkles, Languages, ExternalLink, Clock, ChevronUp, Copy, Check, RefreshCw, Newspaper } from 'lucide-react';
 
 const LANGUAGES = [
   { code: 'Urdu', label: '🇵🇰 Urdu' },
@@ -23,8 +13,8 @@ const LANGUAGES = [
   { code: 'Hindi', label: '🇮🇳 Hindi' }
 ];
 
-export default function ArticleCard({ article, apiBaseUrl }) {
-  const [activeAiTab, setActiveAiTab] = useState(null); // null | 'summary' | 'translate'
+export default function ArticleCard({ article, apiBaseUrl = '' }) {
+  const [activeAiTab, setActiveAiTab] = useState(null);
   const [targetLang, setTargetLang] = useState('Urdu');
   const [showLangPicker, setShowLangPicker] = useState(false);
   
@@ -33,7 +23,9 @@ export default function ArticleCard({ article, apiBaseUrl }) {
   const [summaryResult, setSummaryResult] = useState('');
   const [translateResult, setTranslateResult] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [imageError, setImageError] = useState(false);
+  
+  // Track image load attempts: 0 = Direct, 1 = Proxied, 2 = Failed
+  const [imageState, setImageState] = useState(0);
 
   const formatTimeAgo = (dateString) => {
     if (!dateString) return 'Recently';
@@ -49,25 +41,29 @@ export default function ArticleCard({ article, apiBaseUrl }) {
     return `${diffInDays}d ago`;
   };
 
-  // Get fallback image based on article title keywords or default
-  const getFallbackImage = () => {
-    const titleLower = (article.title || '').toLowerCase();
-    if (titleLower.includes('business') || titleLower.includes('stock') || titleLower.includes('market') || titleLower.includes('economy')) {
-      return CATEGORY_FALLBACK_IMAGES.business;
+  // Determine current image URL to render
+  const getImageSource = () => {
+    if (!article.image_url) return null;
+    if (imageState === 0) {
+      // Step 1: Attempt direct original URL
+      return article.image_url;
     }
-    if (titleLower.includes('tech') || titleLower.includes('ai') || titleLower.includes('digital') || titleLower.includes('software')) {
-      return CATEGORY_FALLBACK_IMAGES.technology;
+    if (imageState === 1) {
+      // Step 2: If direct URL fails, repair using Server Proxy
+      return `${apiBaseUrl}/api/image-proxy?url=${encodeURIComponent(article.image_url)}`;
     }
-    if (titleLower.includes('sport') || titleLower.includes('cricket') || titleLower.includes('football') || titleLower.includes('match')) {
-      return CATEGORY_FALLBACK_IMAGES.sports;
-    }
-    if (titleLower.includes('health') || titleLower.includes('virus') || titleLower.includes('medical')) {
-      return CATEGORY_FALLBACK_IMAGES.health;
-    }
-    return CATEGORY_FALLBACK_IMAGES.default;
+    return null;
   };
 
-  const displayImageSrc = (article.image_url && !imageError) ? article.image_url : getFallbackImage();
+  const handleImageError = () => {
+    if (imageState === 0 && article.image_url) {
+      console.log(`[Image Repair] Direct load failed for ${article.image_url}. Retrying with Server Proxy...`);
+      setImageState(1);
+    } else {
+      console.warn(`[Image Error] Failed to load image even with proxy: ${article.image_url}`);
+      setImageState(2);
+    }
+  };
 
   // Trigger Summarize
   const handleToggleSummarize = async () => {
@@ -143,6 +139,8 @@ export default function ArticleCard({ article, apiBaseUrl }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const currentImgSrc = getImageSource();
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 20 }}
@@ -154,12 +152,22 @@ export default function ArticleCard({ article, apiBaseUrl }) {
     >
       {/* Thumbnail Image Header */}
       <div className="relative h-48 w-full bg-[#FAFAF8] overflow-hidden border-b border-[#E5E4DE]/60">
-        <img
-          src={displayImageSrc}
-          alt={article.title}
-          onError={() => setImageError(true)}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
+        {currentImgSrc ? (
+          <img
+            src={currentImgSrc}
+            alt={article.title}
+            referrerPolicy="no-referrer"
+            onError={handleImageError}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full bg-[#F4F4F0] flex flex-col items-center justify-center text-[#6B6B66] p-4 text-center">
+            <Newspaper className="w-8 h-8 mb-2 opacity-40 text-[#2456C9]" />
+            <span className="font-mono-meta text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]">
+              Editorial News Wire
+            </span>
+          </div>
+        )}
 
         {/* Source & Time Metadata Badges */}
         <div className="absolute top-3 left-3 flex items-center gap-2">

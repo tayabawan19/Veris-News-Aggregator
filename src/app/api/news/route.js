@@ -28,13 +28,22 @@ function filterByTimeframe(articles, timeframe) {
   });
 }
 
+function cleanImageUrl(url) {
+  if (!url || typeof url !== 'string') return null;
+  let cleaned = url.trim();
+  if (cleaned.startsWith('http://')) {
+    cleaned = cleaned.replace('http://', 'https://');
+  }
+  return cleaned;
+}
+
 function formatArticles(articles) {
   return articles.map(a => ({
     title: a.title || 'Untitled',
     description: a.description || '',
     source_name: a.source_name || 'Unknown',
     url: a.url || '',
-    image_url: a.image_url || null,
+    image_url: cleanImageUrl(a.image_url),
     published_at: a.published_at
   }));
 }
@@ -130,7 +139,7 @@ export async function GET(request) {
       description: art.description || art.content || '',
       source_name: art.source_id || art.source_name || 'Unknown',
       url: art.link || '',
-      image_url: art.image_url || null,
+      image_url: cleanImageUrl(art.image_url),
       country: countryLower,
       city_keyword: cityLower,
       category: categoryLower,
