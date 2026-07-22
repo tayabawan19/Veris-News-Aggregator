@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.production
+.env.development
+
+# Build Outputs
+.next/
+frontend/.next/
+dist/
+build/
+
+# IDE & OS Files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
