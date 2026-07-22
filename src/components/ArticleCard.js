@@ -2,7 +2,17 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Languages, ExternalLink, Clock, Newspaper, ChevronUp, Copy, Check, RefreshCw } from 'lucide-react';
+import { Sparkles, Languages, ExternalLink, Clock, ChevronUp, Copy, Check, RefreshCw } from 'lucide-react';
+
+const CATEGORY_FALLBACK_IMAGES = {
+  business: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=800&auto=format&fit=crop',
+  technology: 'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=800&auto=format&fit=crop',
+  sports: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=800&auto=format&fit=crop',
+  health: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?q=80&w=800&auto=format&fit=crop',
+  entertainment: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=800&auto=format&fit=crop',
+  top: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=800&auto=format&fit=crop',
+  default: 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?q=80&w=800&auto=format&fit=crop'
+};
 
 const LANGUAGES = [
   { code: 'Urdu', label: '🇵🇰 Urdu' },
@@ -39,6 +49,26 @@ export default function ArticleCard({ article, apiBaseUrl }) {
     return `${diffInDays}d ago`;
   };
 
+  // Get fallback image based on article title keywords or default
+  const getFallbackImage = () => {
+    const titleLower = (article.title || '').toLowerCase();
+    if (titleLower.includes('business') || titleLower.includes('stock') || titleLower.includes('market') || titleLower.includes('economy')) {
+      return CATEGORY_FALLBACK_IMAGES.business;
+    }
+    if (titleLower.includes('tech') || titleLower.includes('ai') || titleLower.includes('digital') || titleLower.includes('software')) {
+      return CATEGORY_FALLBACK_IMAGES.technology;
+    }
+    if (titleLower.includes('sport') || titleLower.includes('cricket') || titleLower.includes('football') || titleLower.includes('match')) {
+      return CATEGORY_FALLBACK_IMAGES.sports;
+    }
+    if (titleLower.includes('health') || titleLower.includes('virus') || titleLower.includes('medical')) {
+      return CATEGORY_FALLBACK_IMAGES.health;
+    }
+    return CATEGORY_FALLBACK_IMAGES.default;
+  };
+
+  const displayImageSrc = (article.image_url && !imageError) ? article.image_url : getFallbackImage();
+
   // Trigger Summarize
   const handleToggleSummarize = async () => {
     if (activeAiTab === 'summary') {
@@ -47,7 +77,7 @@ export default function ArticleCard({ article, apiBaseUrl }) {
     }
 
     setActiveAiTab('summary');
-    if (summaryResult) return; // Cached locally for this card
+    if (summaryResult) return;
 
     setAiLoading(true);
     setAiError(null);
@@ -124,19 +154,12 @@ export default function ArticleCard({ article, apiBaseUrl }) {
     >
       {/* Thumbnail Image Header */}
       <div className="relative h-48 w-full bg-[#FAFAF8] overflow-hidden border-b border-[#E5E4DE]/60">
-        {article.image_url && !imageError ? (
-          <img
-            src={article.image_url}
-            alt={article.title}
-            onError={() => setImageError(true)}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        ) : (
-          <div className="w-full h-full bg-[#F4F4F0] flex flex-col items-center justify-center text-[#6B6B66] p-4 text-center">
-            <Newspaper className="w-8 h-8 mb-2 opacity-50" />
-            <span className="font-mono-meta text-[11px] uppercase tracking-wider">Editorial Wire Photo</span>
-          </div>
-        )}
+        <img
+          src={displayImageSrc}
+          alt={article.title}
+          onError={() => setImageError(true)}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        />
 
         {/* Source & Time Metadata Badges */}
         <div className="absolute top-3 left-3 flex items-center gap-2">
@@ -169,7 +192,7 @@ export default function ArticleCard({ article, apiBaseUrl }) {
           </p>
         </div>
 
-        {/* Inline AI Expansion Container (Light Blue #F0F4FF Tinted) */}
+        {/* Inline AI Expansion Container */}
         <AnimatePresence>
           {activeAiTab && (
             <motion.div
@@ -200,14 +223,14 @@ export default function ArticleCard({ article, apiBaseUrl }) {
                     <button
                       onClick={handleCopy}
                       disabled={aiLoading}
-                      className="p-1 text-[#2456C9] hover:text-[#1A1A1A] transition-colors"
+                      className="p-1 text-[#2456C9] hover:text-[#1A1A1A] transition-colors cursor-pointer"
                       title="Copy output"
                     >
                       {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                     </button>
                     <button
                       onClick={() => setActiveAiTab(null)}
-                      className="text-[#6B6B66] hover:text-[#1A1A1A] text-xs font-bold"
+                      className="text-[#6B6B66] hover:text-[#1A1A1A] text-xs font-bold cursor-pointer"
                     >
                       <ChevronUp className="w-4 h-4" />
                     </button>
@@ -249,7 +272,7 @@ export default function ArticleCard({ article, apiBaseUrl }) {
           {/* Summarize Action */}
           <button
             onClick={handleToggleSummarize}
-            className={`flex-1 text-xs font-semibold py-2 px-3 rounded-full transition-all flex items-center justify-center gap-1.5 active:scale-95 border ${
+            className={`flex-1 text-xs font-semibold py-2 px-3 rounded-full transition-all flex items-center justify-center gap-1.5 active:scale-95 border cursor-pointer ${
               activeAiTab === 'summary'
                 ? 'bg-[#2456C9] text-white border-[#2456C9]'
                 : 'bg-[#FAFAF8] text-[#1A1A1A] border-[#E5E4DE] hover:border-[#2456C9] hover:text-[#2456C9]'
@@ -263,7 +286,7 @@ export default function ArticleCard({ article, apiBaseUrl }) {
           <div className="relative flex-1">
             <button
               onClick={() => handleToggleTranslate(targetLang)}
-              className={`w-full text-xs font-semibold py-2 px-3 rounded-full transition-all flex items-center justify-center gap-1.5 active:scale-95 border ${
+              className={`w-full text-xs font-semibold py-2 px-3 rounded-full transition-all flex items-center justify-center gap-1.5 active:scale-95 border cursor-pointer ${
                 activeAiTab === 'translate'
                   ? 'bg-[#2456C9] text-white border-[#2456C9]'
                   : 'bg-[#FAFAF8] text-[#1A1A1A] border-[#E5E4DE] hover:border-[#2456C9] hover:text-[#2456C9]'
@@ -277,7 +300,7 @@ export default function ArticleCard({ article, apiBaseUrl }) {
             <div className="absolute right-0 bottom-full mb-1">
               <button
                 onClick={() => setShowLangPicker(!showLangPicker)}
-                className="text-[10px] text-[#6B6B66] hover:text-[#2456C9] underline font-mono-meta block text-right mt-1"
+                className="text-[10px] text-[#6B6B66] hover:text-[#2456C9] underline font-mono-meta block text-right mt-1 cursor-pointer"
               >
                 Change Lang
               </button>
@@ -288,7 +311,7 @@ export default function ArticleCard({ article, apiBaseUrl }) {
                     <button
                       key={lang.code}
                       onClick={() => handleToggleTranslate(lang.code)}
-                      className="w-full text-left px-3 py-1.5 text-xs text-[#1A1A1A] hover:bg-[#F0F4FF] hover:text-[#2456C9] transition-colors"
+                      className="w-full text-left px-3 py-1.5 text-xs text-[#1A1A1A] hover:bg-[#F0F4FF] hover:text-[#2456C9] transition-colors cursor-pointer"
                     >
                       {lang.label}
                     </button>
