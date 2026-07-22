@@ -9,7 +9,7 @@ import RegionPickerModal from '@/components/RegionPickerModal';
 import SkeletonFeed from '@/components/SkeletonFeed';
 import { AlertCircle, Newspaper } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = ''; // Relative path for Vercel & local Next.js API routes
 
 export default function Home() {
   const [countries, setCountries] = useState([
@@ -79,7 +79,7 @@ export default function Home() {
       }
     } catch (err) {
       console.warn('Network / API Exception:', err.message);
-      setError('Unable to reach news server. Please check your backend connection.');
+      setError('Unable to reach news server. Please check connection.');
       setArticles([]);
     } finally {
       setLoading(false);
@@ -232,7 +232,7 @@ export default function Home() {
       <footer className="border-t border-[#E5E4DE] max-w-7xl mx-auto mx-4 sm:mx-6 pt-8 mt-16 text-center text-xs text-[#6B6B66] font-mono-meta flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>Veris © 2026 • AI-Powered Regional Newsroom System</div>
         <div className="flex items-center space-x-4">
-          <span>Node.js / Express</span>
+          <span>Next.js 16 App Router</span>
           <span>•</span>
           <span>Supabase Postgres</span>
           <span>•</span>
